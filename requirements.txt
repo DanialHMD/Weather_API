@@ -55,6 +55,7 @@ tzdata==2025.2
 url-normalize==2.2.1
 urllib3==2.5.0
 urllib3-future==2.13.902
+uvicorn==0.35.0
 wassima==1.2.2
 watchfiles==1.1.0
 websockets==15.0.1
