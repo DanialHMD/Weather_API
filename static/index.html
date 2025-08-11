@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather API</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <h1>Weather API</h1>
+    <form id="weather-form">
+        <input type="text" id="city" placeholder="Enter city name" required>
+        <input type="text" id="country" placeholder="Enter country name">
+        <select id="period">
+            <option value="hourly">24 Hours</option>
+            <option value="daily">7 Days</option>
+            <option value="weekly">2 Weeks</option>
+        </select>
+        <button type="submit">Get Weather</button>
+    </form>
+    <div id="weather-result"></div>
+
+    <script>
+        function renderTable(data) {
+            if (data.error) {
+                return `<div style="color:red;">${data.error[0] || data.error}</div>`;
+            }
+            const keys = Object.keys(data);
+            if (keys.length === 0) return "<div>No data</div>";
+            const rowCount = Array.isArray(data[keys[0]]) ? data[keys[0]].length : 0;
+            if (rowCount === 0) return "<div>No data</div>";
+
+            let html = "<table><thead><tr>";
+            for (const key of keys) {
+                html += `<th>${key}</th>`;
+            }
+            html += "</tr></thead><tbody>";
+            for (let i = 0; i < rowCount; i++) {
+                html += "<tr>";
+                for (const key of keys) {
+                    const value = data[key][i];
+                    if (typeof value === "number") {
+                        html += `<td>${Number.isInteger(value) ? value : Math.round(value)}</td>`;
+                    } else {
+                        html += `<td>${value}</td>`;
+                    }
+                }
+                html += "</tr>";
+            }
+            html += "</tbody></table>";
+            return html;
+        }
+
+        document.getElementById('weather-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const city = document.getElementById('city').value;
+            const country = document.getElementById('country').value;
+            const period = document.getElementById('period').value;
+
+            document.getElementById('weather-result').innerHTML = "Loading...";
+            const response = await fetch('/weather/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ city, country, period })
+            });
+
+            const data = await response.json();
+            document.getElementById('weather-result').innerHTML = renderTable(data);
+        });
+    </script>
+</body>
+</html>
