@@ -2,7 +2,6 @@ import openmeteo_requests
 import pandas as pd
 import requests_cache
 from retry_requests import retry
-import httpx
 
 
 class WeatherAPI:
@@ -23,7 +22,8 @@ class WeatherAPI:
         params = {"name": city}
         if country:
             params["country"] = country
-        response = httpx.get(url, params=params)
+        response = self.retry_session.get(url,
+                                          params=params)  # Use cached session
         data = response.json()
         if data.get("results"):
             lat = data["results"][0]["latitude"]

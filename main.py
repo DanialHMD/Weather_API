@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from api.weatherapi import WeatherAPI
 from pydantic import BaseModel
+from time import time
 
 
 class WeatherRequest(BaseModel):
@@ -16,6 +17,8 @@ weather_api = WeatherAPI()
 
 app.mount('/static', StaticFiles(directory='static'), name='static')
 
+weather_cache = {}
+
 
 @app.get("/")
 def read_index():
@@ -24,6 +27,12 @@ def read_index():
 
 @app.post("/weather/")
 def report_weather(request: WeatherRequest):
+    cache_key = f"{request.city}_{request.country}_{request.period}"
+    now = time()
+    # 10 minutes cache
+    if cache_key in weather_cache and now - weather_cache[cache_key][
+            'time'] < 600:
+        return weather_cache[cache_key]['data']
     try:
         lat, lon, _ = weather_api.get_lat_lon(request.city, request.country)
         if request.period == "hourly":
@@ -38,6 +47,8 @@ def report_weather(request: WeatherRequest):
         for col in df.columns:
             if df[col].dtype == 'datetime64[ns]':
                 df[col] = df[col].astype(str)
-        return df.to_dict(orient="list")
+        result = df.to_dict(orient="list")
+        weather_cache[cache_key] = {'data': result, 'time': now}
+        return result
     except Exception as e:
         return {"error": [str(e)]}
