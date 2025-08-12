@@ -4,6 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from api.weatherapi import WeatherAPI
 from pydantic import BaseModel
 from time import time
+from fastapi import Depends
+from memory_profiler import profile
+import os
 
 
 class WeatherRequest(BaseModel):
@@ -15,7 +18,8 @@ class WeatherRequest(BaseModel):
 app = FastAPI()
 weather_api = WeatherAPI()
 
-app.mount('/static', StaticFiles(directory='static'), name='static')
+static_dir = os.path.join(os.path.dirname(__file__), 'static')
+app.mount('/static', StaticFiles(directory=static_dir), name='static')
 
 weather_cache = {}
 
@@ -25,8 +29,9 @@ def read_index():
     return FileResponse("static/index.html")
 
 
-@app.post("/weather/")
-def report_weather(request: WeatherRequest):
+@profile
+@app.get("/weather/")
+def report_weather(request: WeatherRequest = Depends()):
     cache_key = f"{request.city}_{request.country}_{request.period}"
     now = time()
     # 10 minutes cache

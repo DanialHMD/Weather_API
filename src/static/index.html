@@ -58,12 +58,8 @@
             const period = document.getElementById('period').value;
 
             document.getElementById('weather-result').innerHTML = "Loading...";
-            const response = await fetch('/weather/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ city, country, period })
+            const response = await fetch(`/weather?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&period=${encodeURIComponent(period)}`, {
+                method: 'GET'
             });
 
             const data = await response.json();
