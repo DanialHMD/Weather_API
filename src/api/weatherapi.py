@@ -7,16 +7,14 @@ from memory_profiler import profile
 
 class WeatherAPI:
 
-    def __init__(self, city=None, country=None, period=None):
-        self.cache_session = requests_cache.CachedSession('.cache',
-                                                          expire_after=3600)
-        self.retry_session = retry(self.cache_session,
-                                   retries=5,
-                                   backoff_factor=0.2)
+    def __init__(self, city=None, country=None, period=None, start_date=None):
+        self.cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
+        self.retry_session = retry(self.cache_session, retries=5, backoff_factor=0.2)
         self.openmeteo = openmeteo_requests.Client(session=self.retry_session)
         self.city = city
         self.country = country
         self.period = period
+        self.start_date = pd.to_datetime(start_date, utc=True) if start_date else None
 
     def get_lat_lon(self, city: str, country: str = None) -> tuple:
         url = "https://geocoding-api.open-meteo.com/v1/search"
@@ -44,7 +42,9 @@ class WeatherAPI:
             params = {
                 "latitude": latitude,
                 "longitude": longitude,
-                "hourly": ["temperature_2m", "rain", "wind_speed_10m", "visibility", "relative_humidity_2m"]
+                "hourly": ["temperature_2m", "rain", "wind_speed_10m", "visibility", "relative_humidity_2m"],
+                "start_date": self.start_date.strftime("%Y-%m-%d") if self.start_date else None,
+                "end_date": (self.start_date + pd.Timedelta(days=3)).strftime("%Y-%m-%d") if self.start_date else None
             }
             url = "https://api.open-meteo.com/v1/forecast"
             response = self.openmeteo.weather_api(url=url, params=params)[0]
@@ -56,14 +56,12 @@ class WeatherAPI:
             hourly_wind_speed_10m = hourly.Variables(3).ValuesAsNumpy()
             hourly_relative_humidity_2m = hourly.Variables(4).ValuesAsNumpy()
 
-            times = pd.date_range(start=pd.to_datetime(hourly.Time(),
-                                                       unit="s",
-                                                       utc=True),
-                                  end=pd.to_datetime(hourly.TimeEnd(),
-                                                     unit="s",
-                                                     utc=True),
-                                  freq=pd.Timedelta(seconds=hourly.Interval()),
-                                  inclusive="left")
+            times = pd.date_range(
+                start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
+                end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
+                freq=pd.Timedelta(seconds=hourly.Interval()),
+                inclusive="left"
+            )
 
             hourly_data = {
                 "Date": times.astype(str),
@@ -94,7 +92,9 @@ class WeatherAPI:
                     "wind_speed_10m_max","sunrise", "sunset",
                     "daylight_duration", "sunshine_duration", "rain_sum",
                     "uv_index_max"
-                ]
+                ],
+                "start_date": self.start_date.strftime("%Y-%m-%d") if self.start_date else None,
+                "end_date": (self.start_date + pd.Timedelta(days=3)).strftime("%Y-%m-%d") if self.start_date else None
             }
             url = "https://api.open-meteo.com/v1/forecast"
             response = self.openmeteo.weather_api(url=url, params=params)[0]
@@ -110,14 +110,12 @@ class WeatherAPI:
             daily_sunshine_duration = daily.Variables(7).ValuesAsNumpy()
             daily_uv_index_max = daily.Variables(8).ValuesAsNumpy()
 
-            times = pd.date_range(start=pd.to_datetime(daily.Time(),
-                                                       unit="s",
-                                                       utc=True),
-                                  end=pd.to_datetime(daily.TimeEnd(),
-                                                     unit="s",
-                                                     utc=True),
-                                  freq=pd.Timedelta(seconds=daily.Interval()),
-                                  inclusive="left")
+            times = pd.date_range(
+                start=pd.to_datetime(daily.Time(), unit="s", utc=True),
+                end=pd.to_datetime(daily.TimeEnd(), unit="s", utc=True),
+                freq=pd.Timedelta(seconds=daily.Interval()),
+                inclusive="left"
+            )
 
             daily_data = {
                 "Date": times.astype(str),
@@ -133,7 +131,7 @@ class WeatherAPI:
             }
 
             daily_dataframe = pd.DataFrame(data=daily_data)
-            daily_dataframe = daily_dataframe.iloc[:7]  # Limit to 7 days
+            daily_dataframe = daily_dataframe.iloc[:3]  # Limit to 3 days
             return daily_dataframe
         except Exception as e:
             return pd.DataFrame({"error": [str(e)]})
@@ -158,7 +156,7 @@ class WeatherAPI:
                 "max"
             }).reset_index()
             weekly_df['date'] = weekly_df['date'].astype(str)
-            weekly_df = weekly_df.iloc[:2]  # Limit to 2 weeks
+            weekly_df = weekly_df.iloc[:1]  # Limit to 1 week
             return weekly_df
         except Exception as e:
             return pd.DataFrame({"error": [str(e)]})

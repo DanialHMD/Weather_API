@@ -16,6 +16,8 @@
             <option value="daily">7 Days</option>
             <option value="weekly">2 Weeks</option>
         </select>
+        <label for="start-date">Start Date:</label>
+        <input type="date" id="start-date" name="start-date" required>
         <button type="submit">Get Weather</button>
     </form>
     <div id="weather-result"></div>
@@ -56,9 +58,10 @@
             const city = document.getElementById('city').value;
             const country = document.getElementById('country').value;
             const period = document.getElementById('period').value;
+            const startDate = document.getElementById('start-date').value;
 
             document.getElementById('weather-result').innerHTML = "Loading...";
-            const response = await fetch(`/weather?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&period=${encodeURIComponent(period)}`, {
+            const response = await fetch(`/weather?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&period=${encodeURIComponent(period)}&start_date=${encodeURIComponent(startDate)}`, {
                 method: 'GET'
             });
 

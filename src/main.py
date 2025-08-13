@@ -7,12 +7,14 @@ from time import time
 from fastapi import Depends
 from memory_profiler import profile
 import os
+from datetime import datetime
 
 
 class WeatherRequest(BaseModel):
     city: str
     country: str = None
     period: str
+    start_date: str
 
 
 app = FastAPI()
@@ -25,13 +27,13 @@ weather_cache = {}
 
 
 @app.get("/")
-def read_index():
+def read_index() -> FileResponse:
     return FileResponse("static/index.html")
 
 
 @profile
 @app.get("/weather/")
-def report_weather(request: WeatherRequest = Depends()):
+def report_weather(request: WeatherRequest = Depends()) -> dict:
     cache_key = f"{request.city}_{request.country}_{request.period}"
     now = time()
     # 10 minutes cache
@@ -40,6 +42,10 @@ def report_weather(request: WeatherRequest = Depends()):
         return weather_cache[cache_key]['data']
     try:
         lat, lon, _ = weather_api.get_lat_lon(request.city, request.country)
+        weather_api.start_date = datetime.strptime(request.start_date, "%Y-%m-%d") if request.start_date else None
+        print(request.start_date, type(request.start_date))
+        print(weather_api.start_date, type(weather_api.start_date))
+
         if request.period == "hourly":
             df = weather_api.get_hourly_forecast(lat, lon)
         elif request.period == "daily":
